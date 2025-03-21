@@ -8,66 +8,61 @@ import datetime
 
 class ASPEngine:
     def __init__(self, load_from_db: bool = True):
+        # We'll use a much simpler ASP program that should be compatible with any Clingo version
         self.base_program = """
-            % Define prompt components and their properties
+            % Define prompt components
             component(instruction).
             component(context).
             component(example).
             component(constraint).
             component(output_format).
             
-            % Define reasoning tasks and their characteristics
+            % Define tasks
             task(deduction).
             task(induction).
             task(abduction).
             task(comparison).
             task(counterfactual).
             
-            % Define target model behaviors
+            % Define behaviors
             behavior(precision).
             behavior(creativity).
             behavior(step_by_step).
             behavior(conciseness).
             behavior(error_checking).
             
-            % Prompt composition rules
+            % Each component must be assigned exactly one position (1-5)
             1 { prompt_position(C, P) : P = 1..5 } 1 :- component(C).
+            
+            % No two components can share the same position
             :- prompt_position(C1, P), prompt_position(C2, P), C1 != C2.
             
-            % Component dependency constraints
+            % An example requires an instruction
             :- prompt_position(example, _), not prompt_position(instruction, _).
+            
+            % A constraint requires an instruction
             :- prompt_position(constraint, _), not prompt_position(instruction, _).
             
-            % Calculate prompt effectiveness score
-            prompt_task_score(Score) :-
-                Score = #sum { E*W, C,T : component(C), 
-                                prompt_position(C, _), 
-                                target_task(T), 
-                                component_efficacy(C, T, E),
-                                weight(T, W) }.
-                                
-            prompt_position_score(Score) :-
-                Score = #sum { E*W, C,P : component(C),
-                                prompt_position(C, P),
-                                position_effect(C, P, E),
-                                weight(position, W) }.
-                                
-            prompt_behavior_score(Score) :-
-                Score = #sum { E*W, C,B : component(C),
-                                prompt_position(C, _),
-                                target_behavior(B),
-                                component_efficacy(C, B, E),
-                                weight(B, W) }.
-                                
-            effectiveness(S1 + S2 + S3) :- 
-                prompt_task_score(S1),
-                prompt_position_score(S2),
-                prompt_behavior_score(S3).
+            % Preference for instruction at the beginning
+            instruction_first :- prompt_position(instruction, 1).
             
-            % Maximize effectiveness
-            #maximize { Score : effectiveness(Score) }.
+            % Preference for examples after instructions
+            example_after_instruction :- 
+                prompt_position(instruction, P1), 
+                prompt_position(example, P2), 
+                P1 < P2.
             
-            % Show result
+            % Calculate a simple effectiveness score (without complex aggregates)
+            % We'll add constant values for demonstration
+            effectiveness(100) :- instruction_first, example_after_instruction.
+            effectiveness(80) :- instruction_first, not example_after_instruction.
+            effectiveness(60) :- not instruction_first, example_after_instruction.
+            effectiveness(40) :- not instruction_first, not example_after_instruction.
+            
+            % Optimize for highest effectiveness
+            #maximize { S : effectiveness(S) }.
+            
+            % Show results
             #show prompt_position/2.
             #show effectiveness/1.
         """
