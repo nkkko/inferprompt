@@ -39,25 +39,30 @@ class ASPEngine:
             :- prompt_position(constraint, _), not prompt_position(instruction, _).
             
             % Calculate prompt effectiveness score
-            effectiveness(Score) :-
-                Score = #sum { 
-                    E*W : component(C), 
-                          prompt_position(C, _), 
-                          target_task(T), 
-                          component_efficacy(C, T, E),
-                          weight(T, W)
-                } + #sum {
-                    E*W : component(C),
-                          prompt_position(C, P),
-                          position_effect(C, P, E),
-                          weight(position, W)
-                } + #sum {
-                    E*W : component(C),
-                          prompt_position(C, _),
-                          target_behavior(B),
-                          component_efficacy(C, B, E),
-                          weight(B, W)
-                }.
+            prompt_task_score(Score) :-
+                Score = #sum { E*W, C,T : component(C), 
+                                prompt_position(C, _), 
+                                target_task(T), 
+                                component_efficacy(C, T, E),
+                                weight(T, W) }.
+                                
+            prompt_position_score(Score) :-
+                Score = #sum { E*W, C,P : component(C),
+                                prompt_position(C, P),
+                                position_effect(C, P, E),
+                                weight(position, W) }.
+                                
+            prompt_behavior_score(Score) :-
+                Score = #sum { E*W, C,B : component(C),
+                                prompt_position(C, _),
+                                target_behavior(B),
+                                component_efficacy(C, B, E),
+                                weight(B, W) }.
+                                
+            effectiveness(S1 + S2 + S3) :- 
+                prompt_task_score(S1),
+                prompt_position_score(S2),
+                prompt_behavior_score(S3).
             
             % Maximize effectiveness
             #maximize { Score : effectiveness(Score) }.
